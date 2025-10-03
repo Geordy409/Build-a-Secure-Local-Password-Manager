@@ -39,9 +39,29 @@ promptNewPassword logs a message to the command-line
 console for the user to type their main master password.
 */
 
-const promptNewPassword = (password) => {
+const promptNewPassword = () => {
   const response = prompt(" Enter a main password: ");
   return saveNewPassword(response);
 };
 
-promptNewPassword();
+const promptOldPassword = async () => {
+  while (true) {
+    const response = prompt("Enter your password: ");
+    const result = await compareHashedPassword(response);
+    if (result) {
+      console.log("Password verified.");
+      showMenu();
+      break; // out to loop
+    } else {
+      console.log("Password incorrect. Try again.");
+    }
+  }
+};
+
+const viewPassword = () => {
+  const { passwords } = mockDB;
+  Object.entries(passwords).forEach(([key, value], index) => {
+    console.log(`${index + 1}. ${key} => ${value}`);
+  });
+  showMenu();
+};
