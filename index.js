@@ -1,11 +1,11 @@
 import bcrypt from "bcrypt";
 import promptModule from "prompt-sync";
-
+import { MongoClient } from "mongodb";
 const password = "test1234";
 //const hash = bcrypt.hashSync(password, 10);
 // Create the function for NewSavePassword
 const prompt = promptModule();
-const mockDB = { password: {} };
+const mockDB = { passwords: {} };
 
 const showMenu = async () => {
   console.log(`
@@ -30,8 +30,8 @@ const saveNewPassword = (password) => {
   showMenu();
 };
 
-const comparedHashedPassWord = async (password) => {
-  await bcrypt.compare(password, mockDB.hash);
+const compareHashedPassword = async (password) => {
+  return await bcrypt.compare(password, mockDB.hash);
 };
 
 /*
@@ -58,10 +58,33 @@ const promptOldPassword = async () => {
   }
 };
 
-const viewPassword = () => {
+const viewPasswords = () => {
   const { passwords } = mockDB;
   Object.entries(passwords).forEach(([key, value], index) => {
     console.log(`${index + 1}. ${key} => ${value}`);
   });
   showMenu();
 };
+
+// function to see if the password = passord entered
+
+const promptManageNewPassword = () => {
+  const source = prompt("Enter name for password: ");
+  const password = prompt("Enter password to save: ");
+
+  mockDB.passwords[source] = password;
+  console.log(`Password for ${source} has been saved`);
+  showMenu();
+};
+if (!mockDB.hash) promptNewPassword();
+else promptOldPassword();
+
+/**
+Wee are going to saving the passWord in MongoDB 
+*/
+
+const dbURL = "mongodb://localhost:27017";
+const client = new MongoClient(dbURL);
+let hasPassWords = false;
+let passwordsCollection, authCollection;
+const dbName = "PasswordManager";
