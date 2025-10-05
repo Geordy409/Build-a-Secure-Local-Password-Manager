@@ -1,9 +1,8 @@
 import bcrypt from "bcrypt";
 import promptModule from "prompt-sync";
 import { MongoClient, ReturnDocument } from "mongodb";
+
 const password = "test1234";
-//const hash = bcrypt.hashSync(password, 10);
-// Create the function for NewSavePassword
 const prompt = promptModule();
 const mockDB = { passwords: {} };
 
@@ -17,11 +16,6 @@ const compareHashedPassword = async (password) => {
   return await bcrypt.compare(password, mockDB.hash);
 };
 
-/*
-promptNewPassword logs a message to the command-line
-console for the user to type their main master password.
-*/
-
 const promptNewPassword = () => {
   const response = prompt(" Enter a main password: ");
   return saveNewPassword(response);
@@ -34,7 +28,7 @@ const promptOldPassword = async () => {
     if (result) {
       console.log("Password verified.");
       showMenu();
-      break; // out to loop
+      break;
     } else {
       console.log("Password incorrect. Try again.");
     }
@@ -42,34 +36,55 @@ const promptOldPassword = async () => {
 };
 
 const viewPasswords = async () => {
-  const passwords = await passwordsCollection.find({}).toArray(); // Make a mongoDB's request and returning all documents
+  const passwords = await passwordsCollection.find({}).toArray();
   passwords.forEach(({ source, password }, index) => {
     console.log(`${index + 1}. ${source} => ${password}`);
   });
   showMenu();
 };
 
-// function to see if the password = passord entered
-
 const promptManageNewPassword = async () => {
   const source = prompt("Enter name for password: ");
   const password = prompt("Enter password to save: ");
-  /*
-    Use findOneAndUpdate to look for an existing password that matches your
-    source and then set the new password.
-    */
   await passwordsCollection.findOneAndUpdate(
     { source },
-    { $set: { password } }, // updates(or Sets) the password field with the new value
-    { ReturnDocument: "after", upsert: true } // Return document, upsert is the key(Document created if not exist)
+    { $set: { password } },
+    { ReturnDocument: "after", upsert: true }
   );
   console.log(`Password for ${source} has been saved`);
   showMenu();
 };
 
-/**
-Wee are going to saving the passWord in MongoDB 
-*/
+// NOUVELLE FONCTION : Recherche de mot de passe par source
+const findPasswordBySource = async () => {
+  while (true) {
+    const source = prompt("Enter source name to find (or 'back' to return): ");
+
+    // Option pour retourner au menu
+    if (source.toLowerCase() === "back") {
+      showMenu();
+      break;
+    }
+
+    // Recherche dans la collection
+    const result = await passwordsCollection.findOne({ source });
+
+    if (result) {
+      console.log(`\nPassword found for "${source}":`);
+      console.log(`  Username: ${result.username || "N/A"}`);
+      console.log(`  Password: ${result.password}\n`);
+    } else {
+      console.log(`\nNo password saved for that source.\n`);
+    }
+
+    // Demander si l'utilisateur veut continuer
+    const again = prompt("Search for another? (y/n): ");
+    if (again.toLowerCase() !== "y") {
+      showMenu();
+      break;
+    }
+  }
+};
 
 const dbURL = "mongodb://localhost:27017";
 const client = new MongoClient(dbURL);
@@ -82,7 +97,8 @@ const showMenu = async () => {
  1. View passwords
  2. Manage new password
  3. Verify password
- 4. Exit`);
+ 4. Exit
+ 5. Find password by source`);
   const response = prompt(">");
   switch (response) {
     case "1":
@@ -96,6 +112,9 @@ const showMenu = async () => {
       break;
     case "4":
       process.exit();
+    case "5":
+      await findPasswordBySource();
+      break;
     default:
       console.log(`That's an invalid response.`);
       await showMenu();
