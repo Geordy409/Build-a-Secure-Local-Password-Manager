@@ -54,10 +54,14 @@ const viewPasswords = async () => {
 const promptManageNewPassword = async () => {
   const source = prompt("Enter name for password: ");
   const password = prompt("Enter password to save: ");
+  /*
+    Use findOneAndUpdate to look for an existing password that matches your
+    source and then set the new password.
+    */
   await passwordsCollection.findOneAndUpdate(
     { source },
-    { $set: { password } },
-    { ReturnDocument: "after", upsert: true }
+    { $set: { password } }, // updates(or Sets) the password field with the new value
+    { ReturnDocument: "after", upsert: true } // Return document, upsert is the key(Document created if not exist)
   );
   console.log(`Password for ${source} has been saved`);
   showMenu();
