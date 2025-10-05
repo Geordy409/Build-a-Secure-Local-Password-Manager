@@ -1,28 +1,11 @@
 import bcrypt from "bcrypt";
 import promptModule from "prompt-sync";
-import { MongoClient } from "mongodb";
+import { MongoClient, ReturnDocument } from "mongodb";
 const password = "test1234";
 //const hash = bcrypt.hashSync(password, 10);
 // Create the function for NewSavePassword
 const prompt = promptModule();
 const mockDB = { passwords: {} };
-
-const showMenu = async () => {
-  console.log(`
- 1. View passwords
- 2. Manage new password
- 3. Verify password
- 4. Exit`);
-  const response = prompt(">");
-  if (response === "1") viewPasswords();
-  else if (response === "2") promptManageNewPassword();
-  else if (response === "3") promptOldPassword();
-  else if (response === "4") process.exit();
-  else {
-    console.log(`That's an invalid response.`);
-    showMenu();
-  }
-};
 
 const saveNewPassword = (password) => {
   mockDB.hash = bcrypt.hashSync(password, 10);
@@ -58,26 +41,27 @@ const promptOldPassword = async () => {
   }
 };
 
-const viewPasswords = () => {
-  const { passwords } = mockDB;
-  Object.entries(passwords).forEach(([key, value], index) => {
-    console.log(`${index + 1}. ${key} => ${value}`);
+const viewPasswords = async () => {
+  const passwords = await passwordsCollection.find({}).toArray(); // Make a mongoDB's request and returning all documents
+  passwords.forEach(({ source, password }, index) => {
+    console.log(`${index + 1}. ${source} => ${password}`);
   });
   showMenu();
 };
 
 // function to see if the password = passord entered
 
-const promptManageNewPassword = () => {
+const promptManageNewPassword = async () => {
   const source = prompt("Enter name for password: ");
   const password = prompt("Enter password to save: ");
-
-  mockDB.passwords[source] = password;
+  await passwordsCollection.findOneAndUpdate(
+    { source },
+    { $set: { password } },
+    { ReturnDocument: "after", upsert: true }
+  );
   console.log(`Password for ${source} has been saved`);
   showMenu();
 };
-if (!mockDB.hash) promptNewPassword();
-else promptOldPassword();
 
 /**
 Wee are going to saving the passWord in MongoDB 
@@ -88,3 +72,47 @@ const client = new MongoClient(dbURL);
 let hasPassWords = false;
 let passwordsCollection, authCollection;
 const dbName = "PasswordManager";
+
+const showMenu = async () => {
+  console.log(`
+ 1. View passwords
+ 2. Manage new password
+ 3. Verify password
+ 4. Exit`);
+  const response = prompt(">");
+  switch (response) {
+    case "1":
+      await viewPasswords();
+      break;
+    case "2":
+      await promptManageNewPassword();
+      break;
+    case "3":
+      await promptOldPassword();
+      break;
+    case "4":
+      process.exit();
+    default:
+      console.log(`That's an invalid response.`);
+      await showMenu();
+  }
+};
+
+const main = async () => {
+  try {
+    await client.connect();
+    console.log("Connected succefully server !");
+    const db = client.db(dbName);
+    authCollection = db.collection("auth");
+    passwordsCollection = db.collection("password");
+    const hashedPassword = await authCollection.findOne({ type: "auth" });
+    hasPassWords = !!hashedPassword;
+  } catch (error) {
+    console.error("Error connecting to the database: ", error);
+    process.exit(1);
+  }
+};
+
+await main();
+if (!hasPassWords) promptNewPassword();
+else promptOldPassword();
