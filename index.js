@@ -2,6 +2,14 @@ import bcrypt from "bcrypt";
 import promptModule from "prompt-sync";
 import { MongoClient, ReturnDocument } from "mongodb";
 
+/* 
+In this Project, we:
+• Built your own password manager application
+• Implemented secure password hashing logic utilizing the bcrypt package
+• Set up a MongoDB database collection for passwords
+• Configured Node to use the mongodb package with user input
+*/
+
 const prompt = promptModule();
 let storedSaltRounds = 10; // Salt rounds fixé à 3
 
